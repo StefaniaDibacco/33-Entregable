@@ -1,37 +1,63 @@
 import express from 'express';
-import { PORT } from '..';
-import { isPrime } from '../utils';
+import handlebars from 'express-handlebars';
+import * as http from 'http';
+import router from '../routes/index';
+import path from 'path';
+import session from 'express-session';
+import passport from '../middleware/auth';
+import compression from 'compression';
+import { errorHandler } from './../middleware/error';
+
 const app = express();
+app.use(compression());
 
-app.get('/', (req, res) => {
-  console.log('Resolving / endpoint');
-  res.json({
-    pid: process.pid,
-    msg: `HOLA desde puerto ${PORT} y process id ${process.pid}`,
-  });
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
+const publicFolderPath = path.resolve(__dirname, '../../public');
+app.use(express.static(publicFolderPath));
+
+app.use(
+  session({
+    secret: 'key_secret',
+    resave: true,
+    saveUninitialized: false,
+    rolling: true,
+    cookie: {
+      maxAge: 600000,
+    },
+  })
+);
+
+app.use(passport.initialize());
+app.use(passport.session());
+app.use(errorHandler);
+
+// configuracion de hbs
+const layoutDirPath = path.resolve(__dirname, '../../views/layouts');
+const defaultLayerPth = path.resolve(
+  __dirname,
+  '../../views/layouts/index.hbs'
+);
+const partialDirPath = path.resolve(__dirname, '../../views/partials');
+
+app.set('view engine', 'hbs');
+app.engine(
+  'hbs',
+  handlebars({
+    layoutsDir: layoutDirPath,
+    defaultLayout: defaultLayerPth,
+    extname: 'hbs',
+    partialsDir: partialDirPath,
+  })
+);
+
+app.use('/api/', router);
+
+// creo mi configuracion para socket
+const myServer = new http.Server(app);
+
+myServer.on('error', (err) => {
+  console.log('ERROR ATAJADO', err);
 });
 
-app.get('/prime', (req, res) => {
-  const primes = [];
-  const max = Number(req.query.max) || 1000;
-  for (let i = 1; i <= max; i++) {
-    if (isPrime(i)) primes.push(i);
-  }
-  res.json(primes);
-});
-
-app.get('/saludar', (req, res) => {
-  const primes = [];
-  const max = Number(req.query.max) || 1000;
-  for (let i = 1; i <= max; i++) {
-    if (isPrime(i)) primes.push(i);
-  }
-
-  res.json({
-    pid: process.pid,
-    msg: `HOLA desde puerto ${PORT} y process id ${process.pid}`,
-    variable: process.env.ENV_EJEMPLO,
-  });
-});
-
-export default app;
+export default myServer;
