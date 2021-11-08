@@ -5,13 +5,13 @@
   "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "start": "node ./dist/index.js",
+    "build": "tsc",
+    "start": "npm run build && node dist/index.js && npm run prod-pm2:cluster",
     "dev": "tsc -W && npm run start",
     "prod": "npm run build && forever -w ./dist/index.js",
     "prod-pm2": "npm run build && pm2 start ecosystem.config.js -w",
     "prod-pm2:fork": "npm run build && pm2 start ecosystem.config.js --only app-fork --no-daemon -w",
-    "prod-pm2:cluster": "npm run build && pm2 start ecosystem.config.js --only app-cluster --no-daemon -w",
-    "build": "tsc"
+    "prod-pm2:cluster": "npm run build && pm2 start ecosystem.config.js --only app-cluster --no-daemon -w"
   },
   "repository": {
     "type": "git",
